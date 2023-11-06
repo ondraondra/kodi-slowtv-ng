@@ -18,6 +18,12 @@ Example video plugin that is compatible with Kodi 20.x "Nexus" and above
 import os
 import sys
 from urllib.parse import urlencode, parse_qsl
+import requests
+import simplejson as json
+import re
+from urllib.parse import urlparse, parse_qs
+from bs4 import BeautifulSoup
+
 
 import xbmcgui
 import xbmcplugin
@@ -34,24 +40,99 @@ ADDON_PATH = translatePath(Addon().getAddonInfo('path'))
 ICONS_DIR = os.path.join(ADDON_PATH, 'resources', 'images', 'icons')
 FANART_DIR = os.path.join(ADDON_PATH, 'resources', 'images', 'fanart')
 
-# Public domain movies are from https://publicdomainmovie.net
-# Here we use a hardcoded list of movies simply for demonstrating purposes
-# In a "real life" plugin you will need to get info and links to video files/streams
-# from some website or online service.
+
+
+
+def slowtv_scrape():
+    vgm_url = 'https://tv.idnes.cz/slow'
+    html_text = requests.get(vgm_url).text
+    soup = BeautifulSoup(html_text, 'html.parser')
+
+    urllist=[]
+    out_list=[]
+    count=0
+
+    for link in soup.find_all('a'):
+        if "/slow/" in link.get('href'):
+            urllist.append(link.get('href'))
+    #        print(link.get('class'))
+    #    else:
+    #        print("fuk")
+
+    #print(urllist)
+
+
+
+    for url in urllist:
+        html_text = requests.get(url).text
+        #print("---------")
+        #print("URL: "+url)
+        soup = BeautifulSoup(html_text, 'html.parser')
+        tento_item={}
+
+        #print("Title: " + soup.title.string)
+        tento_item['title'] = soup.title.string
+        for img in soup.find_all('meta',attrs={"name": "twitter:image"}):
+            #print("poster: https:"+img.get('content'))
+            #print(count)
+            tento_item['poster'] = ("https:"+img.get('content'))
+            #print(tento_item['poster'])
+        ## nasli jsme tuto URL: https://servix.idnes.cz/media/video.aspx?idvideo=V190130_125507_idnestv_taus&reklama=1&idrubriky=tv-slow&idnestv=1
+
+        url_parse = urlparse(url)
+        #print(url_parse.path)
+        dict_result = parse_qs(url_parse.path)
+        
+
+        taus=url.split(".")[-1]
+        #print(taus)
+        year=str(taus.split("V")[1])[0:2]
+        if "letiste" in url:
+            year="16"
+        #print(year)
+        tento_item['year']=int("20"+year)
+
+
+        #if url
+        #print(year)
+        url_playlist = "https://1gr.cz/data/nocache/videostream/20"+year+"/"+taus+".js"
+        #print("Playlist: "+url_playlist)
+
+        playlist_data = requests.get(url_playlist).text
+        #print(playlist_data)
+        playlist_json = json.loads(playlist_data)
+        
+        if playlist_json['q720p'] == True:
+            quality = "720p"
+        if playlist_json['q1080p'] == True:
+            quality = "1080p"
+        
+        #print(quality)
+        try:
+            videokey = playlist_json['video'] # data is a dict
+            for video in videokey:
+                if video['quality'] == quality:
+                    if video['format'] == "mdash":
+                        videourl = video['file']
+        except KeyError:
+            videourl = "no url given"
+
+        #print("videourl: "+videourl)
+        tento_item['url'] = videourl
+        
+        count=count+1
+        tento_item['plot'] = "SlowTV"
+        #print(tento_item)
+        out_list.append(tento_item)
+
+    return out_list
+
 VIDEOS = [
   {
         'genre': 'SlowTV',
         #'icon': os.path.join(ICONS_DIR, 'Drama.png'),
         #'fanart': os.path.join(FANART_DIR, 'Drama.jpg'),
-        'movies': [
-            {
-                'title': 'Planespotting',
-                'url': 'https://live.idnes.cz/slow/planespotting_1080p/manifest_w677350510.mpd',
-                'poster': 'https://1gr.cz/fotky/idnes/21/093/vidw/VCJ8e4f7b_SlowTVLetitVclavaHavla.jpg',
-                'plot': "Letadla",
-                'year': 2023,
-            },
-        ],      
+        'movies': slowtv_scrape()  
     },   
 ]
 

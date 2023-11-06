@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="plugin.video.slowtv-ng"
-version="0.0.1a"
+version="0.0.2a"
 name="SlowTV"
 provider-name="ondraondra">
 <requires>
   <import addon="xbmc.python" version="3.0.1"/>
   <import addon="inputstream.adaptive" version="20.3.14"/>
+  <import addon="script.module.requests" version="2.22.0+matrix.1" />
+  <import addon="script.module.simplejson" version="2.0.10" />
+  <import addon="script.module.beautifulsoup4" version="4.6.2"/>
+
+
 </requires>
 <extension point="xbmc.python.pluginsource" library="main.py">
   <provides>video</provides>
 </extension>
 <extension point="xbmc.addon.metadata">
-  <summary lang="en_GB">Example Kodi Video Plugin</summary>
+  <summary lang="en_GB">SlowTV plugin</summary>
   <description lang="en_GB">Fork of example video plugin for Kodi to play iDnes SlowTV</description>
   <disclaimer lang="en_GB">Streams are provided by idnes.cz</disclaimer>
-  <license>GPL-3.0-only	</license>
+  <license>GPL-3.0-only</license>
   <!-- 
     <assets>
     <icon>resources/images/icon.png</icon>
